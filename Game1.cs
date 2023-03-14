@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Timers;
 
 namespace sanke
 {
@@ -69,8 +70,15 @@ namespace sanke
         readonly int food_block_hieght = 20;
         readonly int food_block_width = 20;
         readonly int initial_lenght =10;
+
+        private Timer timer;
+        private int timerValue = 0;
+        private int points_counter = 0;
+        SpriteFont font;
+
         Vector2D snake_speed;
         Direction snake_diraction;
+
         food snake_food;
         Texture2D snakeBlock;
         Texture2D foodBlock;
@@ -108,7 +116,12 @@ namespace sanke
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
-            
+            timer = new Timer(1000);
+
+            TargetElapsedTime = TimeSpan.FromSeconds(1.0 / 30.0);
+
+            // Set the game to run at a fixed time step
+            IsFixedTimeStep = true;
         }
 
         private Direction check_snake_OnBorder()
@@ -159,7 +172,7 @@ namespace sanke
             }
             return new Vector2D(x_pos, y_pos);
         }
-        private void moveNewDir(int addedVal)
+        private void moveNewDir(int graw_val)
         {
 
             if (Keyboard.GetState().IsKeyDown(Keys.Up))
@@ -204,7 +217,7 @@ namespace sanke
             }
             
             Vector2D change_diraction = Directions.directions[(int)snake_diraction];
-            for (int i = 0; i < addedVal; i++)
+            for (int i = 0; i < graw_val; i++)
             {
                 var lastPos = snakeBlocks.Last().Item2;
                 snakeBlocks.Add((snakeBlock, new Vector2D(lastPos.x + change_diraction.x * snake_speed.x, lastPos.y + change_diraction.y * snake_speed.y)));
@@ -227,7 +240,7 @@ namespace sanke
         protected override void LoadContent()
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
-
+            font = Content.Load<SpriteFont>("File");
             // TODO: use this.Content to load your game content here
             snakeBlock = new Texture2D(GraphicsDevice, 1, 1);
             snakeBlock.SetData(new[] { Color.White });
@@ -246,6 +259,11 @@ namespace sanke
             snake_food.pos = generate_food();
             snake_food.foodBlock = foodBlock;
 
+            timer.Elapsed += (sender, e) =>
+            {
+                timerValue++;
+            };
+            timer.Start();
         }
 
         protected override void Update(GameTime gameTime)
@@ -256,11 +274,11 @@ namespace sanke
             // TODO: Add your update logic here
             moveNewDir(1);
             
-            if (check_snake_bite())
+            if (check_snake_bite())//if snake bite it self
             {
                 Exit();
             }
-            var snake_dir_after_map = check_snake_OnBorder();
+            var snake_dir_after_map = check_snake_OnBorder();//check how to chnage diraction of snake out of board
             if (snake_dir_after_map==Direction.Down)
             {
                 var pos = snakeBlocks.Last().Item2;
@@ -289,9 +307,10 @@ namespace sanke
             {
                 snake_food.pos = generate_food();
 
-                moveNewDir(3);
+                moveNewDir(3);// graw snake by 3 each food eaten
+                points_counter+=200;
             }
-            
+            points_counter++;
             base.Update(gameTime);
         }
 
@@ -307,6 +326,8 @@ namespace sanke
             }
             _spriteBatch.Draw(snake_food.foodBlock, new Rectangle(snake_food.pos.x, snake_food.pos.y, food_block_width, food_block_hieght),
                 Color.Red);
+            _spriteBatch.DrawString(font, "Timer: " + timerValue, new Vector2(10, 10), Color.White);
+            _spriteBatch.DrawString(font, "points: " + points_counter, new Vector2(100, 10), Color.White);
             base.Draw(gameTime);
             _spriteBatch.End();
         }
